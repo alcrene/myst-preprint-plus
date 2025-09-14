@@ -292,9 +292,10 @@ So for my own writing I use a preprocessor which first converts the shorter form
 
 | What I want | Short form   | Robust (long) form | Output |
 |-------------|--------------|--------------------|--------|
-| normal ref  | `@sec:intro` | ``{numref}`section %s <#sec:intro>` `` | section 1 |
+| normal ref  | `@sec:intro`[^shortref] | ``{numref}`section %s <#sec:intro>` `` | section 1 |
+|             | `[](#sec:intro)` | ``{numref}`section %s <#sec:intro>` `` | section 1 |
 | at sentence start | `[Section %s](#sec:intro)` | ``{numref}`Section %s <#sec:intro>` `` | Section 1 |
-| name ref    | `[{name}](#sec:intro)`[^nameref] | `[{name}](#sec:intro)` (no change) | Introduction |
+| name ref    | `[{name}](#sec:intro)` | `[{name}](#sec:intro)` (no change) | Introduction |
 
 
 [^diff-html]: Again, these do seem to have an effect on HTML output, so you may still want to set them if you aim to export both to PDF and HTML.
@@ -303,7 +304,7 @@ So for my own writing I use a preprocessor which first converts the shorter form
 
 [^sentence-begin]: Typographic conventions dictate that the first word of a sentence should always be capitalized and never abbreviated.
 
-[^nameref]: Although I could use the even shorter `[](#sec:intro)` for name references, name references are rather rare in articles, so I prefer to be explicit when using them.
+[^shortref]: I prefer using the shorter/default forms for the most common use case, which is to produce `section %s`; this is also consistent with standard LaTeX usage. (For example, *clever*’s basic `\cref{}` command will produce something close to `section %s`, where the longer `\namecref{}` is used for name references.)
 
 ### Bare tables
 
