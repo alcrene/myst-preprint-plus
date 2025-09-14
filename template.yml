@@ -1,0 +1,318 @@
+jtex: v1
+myst: v1
+title: Preprint+ template
+description: >-
+  A flexible, general-purpose template for preprints, supporting both
+  one and two column layouts.
+  Features especially useful for manuscripts which one intends to a journal:
+  - Page geometry options which approxmiate page sizes of specific journals.
+  - Support for both Appendix and Supplementary Information (SI):
+    SI is printed to separate pages, with its own title, so it can easily be
+    split from the main PDF and submitted separately.
+    (While retaining the ability to use cross-references to the main text.)
+  - Support for -----------------------
+  Based on the `arxiv_two_column` by Brenhin Keller.
+version: 1.0.0
+license: CC-BY-4.0
+thumbnail: ./thumbnail.png
+authors:
+  - name: Alexandre René
+    github: alcrene
+    affiliations:
+      - RWTH Aachen University
+      - University of Ottawa
+tags:
+  - paper
+  - two-column
+  - preprint
+  - arxiv
+  - bioarxiv
+  - eartharxiv
+source: null
+parts:
+  - id: abstract
+    required: true
+    description: >
+      Size limits: arXiv sets a character limit of 1920 for the abstract.
+      Most journals will use a word limit of 300 words or less; for many it
+      is 200 words, or even 150 in some cases.
+      (Typically higher-tier journals expect shorter abstracts, as the papers
+      are also shorter.)
+    max_chars: 1920
+    max_words: 300
+  - id: acknowledgments
+    description: >-
+      Free form acknowledgments section will be include at the end of the
+      article. Placed below an unnumbered "Acknowledgments" heading.
+  - id: funding
+    description: >-
+      Treated identically as acknowledgments: gets placed under an
+      "Acknowledgments" heading. If both 'acknowledgments' and 'funding' parts
+      are provided, 'funding' is displayed below after a paragraph break.
+  - id: data_availability
+    description: >-
+      Free form section describing where readers can obtain the reported data.
+  - id: code_availability
+    description: >-
+      Free form section describing where readers can obtain the code to
+      reproduce the results.
+  - id: author_contributions
+    description: >-
+      Short description of each author’s contribution. For example "A.B.
+      prepared the figures."
+  - id: appendix
+    description: >-
+      Material that is included as part of the article PDF, but after the
+      references and any backmatter notices such as author contributions.
+  - id: supplementary
+    description: >-
+      Material that is meant for a separate PDF. This will be compiled with the
+      main text, but in such a way that it can be easily separated post-hoc
+      (separate pages, starting on an odd page and with a title).
+doc:
+  - id: title
+    required: true
+  - id: short_title
+    required: false
+  - id: authors
+    required: true
+  - id: affiliations
+    required: false
+  - id: date
+    required: false
+  - id: keywords
+    required: false
+  - id: bibliography
+    required: false
+options:
+  ##### Metadata #####
+  - id: language
+    type: string
+    title: Language option
+    required: false
+    description: >
+      Language option which should be passed to the babel package;
+      common options would be 'english', 'american' or 'british'.
+      See the babel documentation for a full list.
+      This option is passed as-is to babel, so technically it could even be
+      used to specify multiple languages, although this is likely of limited use.
+      NOTE: If no language is passed, babel is not loaded at all.
+  - id: compile_date
+    type: choice
+    title: Compilation date to include in the PDF
+    choices:
+      - none
+      - today
+      - frontmatter
+    default: frontmatter
+    description: >
+      Specify which date to display in the compiled PDF. Options are:
+      - none: No compilation date is displayed.
+      - frontmatter: (default) Use the frontmatter’s `date` field.
+      - today: Use the LaTeX macro \today
+               Note that arXiv strongly discourages the use of the \today macro;
+               prefer to use 'date' and pass 'today' to the frontmatter’s `date` field.
+  ##### Content #####
+  - id: status
+    type: string
+    title: Manuscript status
+    default: null
+    required: false
+    description: >
+      One or two few words describing the status of the manuscript,
+      for example "Preprint" or "Under review".
+      This is printed below the title, as well as in the running header.
+      To only print below the title, use 'venue_status' option instead.
+  - id: venue_status
+    type: string
+    title: Venue status
+    description: >
+      A freeform string which is printed below the title.
+      Functionally similar to `status`, except that this option is not
+      included in the running header.
+      This makes it especially more suitable for longer strings like
+      "Published in …" or "Accepted for publication in …".
+  - id: supplementary_link
+    type: string
+    description: >
+      Include a link to supplementary information; this should be a DOI to
+      ensure permanence. The link will be placed inline at the end of all
+      content, in the "Additional information" heading.
+  - id: competing_interests
+    type: string
+    description: >
+      A string describing competing interests, which is placed under the
+      "Additional information" heading. In the case of no competing interests, a
+      standard phrasing is "The authors declare no competing interests."
+  - id: supplementary_prefix
+    type: string
+    default: Supp.
+    description: >
+      Prefix to use for supplementary figures and tables. The default will
+      display them as 'Supp. Fig. 1'.
+      This determines how the label is printed in the caption.
+      To define how figures are referred to in the text, you still need to use
+      the configuration options for the MyST frontmatter.
+      (Unless you hacked MyST to use cleveref for references, in which case this
+      option is all you need.)
+      SUBJECT TO REMOVAL: In theory it should be possible (and better) to set
+      this exclusively with the standard frontmatter numbering options.
+  ##### Page dimensions #####
+  - id: papersize
+    type: choice
+    choices:
+      - letter
+      - a4
+    default: letter
+    description: The paper size to use.
+  - id: two_column
+    type: boolean
+    default: true
+    description: Whether to use two column (true) or single column (false) layout.
+  - id: text_geometry
+    title: Text area geometry
+    type: choice
+    choices:
+      - twocolumn
+      - onecolumn
+      - nature
+      - none
+      - oneortwocol
+    default: oneortwocol
+    description: >
+      This sets the dimensions of the printable text area within the page.
+      Note that this is different from the _papersize_, which sets the dimensions
+      of the page itself.
+      When using this option, make sure to also set `two_column` appropriately:
+      single column text requires a smaller text area.
+      Available options are those defined by `preprint+`:
+      - _twocolumn_: Use dimensions from the preprint-template.tex.
+      - _onecolumn_: Use dimensions from arxiv-style, which are themselves based
+        on the NeurIPS 2018 style.
+      - _nature_: Use dimensions approximating those of a Nature article.
+         Margins in this layout are noticeably smaller and leave little space for the arXiv watermark. Works best with A4 paper size.
+      - _none_: Don’t change dimensions; don’t even load the `geometry` package.
+      - _oneortwocol_: (default): Match to the `two_column` template option.
+         (Use _twocolumn_ if the `two_column` option is True; _onecolumn_ otherwise.)
+    # TODO: Can we set a condition to disallow the following combinations?
+    #    two_column=True: onecolumn
+    #    two_column=False: twocolmun, nature
+  ##### Style #####
+  - id: use_biblatex
+    type: boolean
+    default: true
+    description: >
+      Whether to use BibLaTeX (true) or BibTex (false); default is BibLaTeX.
+      BibLaTex will use the biblatex-nature package, which provides good no-fuss
+      rendering of references. This is a good option for self-publishing,
+      uploading a preprint to arXiv, or for the initial submission to a journal.
+      Unfortunately the vast majority of journal still expect BibTeX references
+      when submitting sources, which will be the case on subsequent submissions.
+      So if you plan on submitting the generated LaTeX to a journal, exporting
+      with BibTex will normally mean less manual tweaking of the output.
+  - id: cite_style
+    type: string
+    default: numeric
+    description: >
+      Determines how citations are formatted in the main text.
+      When compiling with BibLaTeX, this is passed to the `citestyle` option.
+      If `bib_style` is undefined, it is also passed to the `bibstyle` option.
+      Any value accepted by the `citestyle` option is supported; some common ones are 
+      'numeric', 'numeric-comp', 'alphabetic', 'authoryear', 'authoryear-comp'.
+      TODO: Conversion to a reasonable natbib equivalent when compiling with BibTex.
+  - id: bib_style
+    type: string
+    default: numeric
+    description: >
+      Determines how references are formatted in the reference list.
+      When compiling with BibLaTeX, this is passed to the `bibstyle` option.
+      If `bib_style` is undefined, the value from `cite_style` is used instead.
+      Any value accepted by the `bibstyle` option is supported; some common ones
+      are 'numeric', 'alphabetic', 'authoryear'.
+      TODO: Conversion to a reasonable natbib equivalent when compiling with BibTex
+  - id: citep_format
+    type: string
+    default: inline
+    description: >
+      Determines which command to use for "parenthetical" citations.
+      The value is passed to BibLaTeX’s `autocite` option; typical values are
+      'plain', 'inline' (-> parencite), 'footnote' (-> \footcite),
+      'superscript' (-> \supercite)
+      TODO: Add a transform which converts \citep to \autocite, otherwise this will have no effect.
+      TODO: Conversion to a reasonable natbib equivalent when compiling with BibTex
+  - id: separate_appendix_references
+    type: boolean
+    default: false
+    description: >
+      Whether to print separate bibliographies for the appendix.
+      This only works when `use_biblatex=True`.
+    # BUG? If I add a condition that use_biblatex=true, \newrefsection is no longer added even when this value is true.
+  - id: separate_supplementary_references
+    type: boolean
+    default: true
+    description: >
+      Whether to print separate bibliographies for the supplementary material.
+      This only works when `use_biblatex=True`.
+    # BUG? If I add a condition that use_biblatex=true, \newrefsection is no longer added even when this value is true.
+  ##### Editing helpers #####
+  - id: margin_ticks
+    type: boolean
+    default: false
+    description: >-
+      Whether to print ticks indicating the margins. This is useful during
+      preparation to ensure the bounds of the text area are not exceeded.
+      LIMITATION: Currently only works with the `two_column` option, as the
+      values are hard-coded.
+  - id: line_numbers
+    type: boolean
+    description: Whether to display line numbers.
+    default: false
+  - id: online_link
+    type: string
+    description: >
+      Include a link back to the online version of the article, for example on
+      curvenote.com, a GitHub/GitLab with the HTML export, or a permanent link
+      on Zenodo. The link will be placed inline at the end of all content,
+      under the "Additional information" heading.
+files:
+  - template.tex
+  - preprint+.sty
+packages:
+  - abstract
+  - amssymb
+  - amsthm
+  - authblk
+  - babel
+  - background
+  - biblatex-nature
+  - cabin
+  - chngcntr
+  - cleveref
+  - datetime
+  - datetime2
+  - datetime2-calc
+  - doi
+  - erewhon
+  - fancyhdr
+  - fontenc
+  - geometry
+  - hyperref
+  - ifdraft
+  - inconsolata
+  - inputenc
+  - lineno
+  - lipsum
+  - microtype
+  - natbib
+  - newfloat
+  - newtxmath
+  - preprint+
+  - scalerel
+  - sidecap
+  - tikz
+  - times
+  - titlesec
+  - txfonts
+  - venturis
+  - xcolor
+  - xurl

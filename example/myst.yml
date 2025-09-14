@@ -1,0 +1,46 @@
+version: 1
+site:
+  template: article-theme
+project:
+  description: >-
+    Features especially useful for manuscripts which one intends to a journal:
+    - Page geometry options which approxmiate page sizes of specific journals.
+    - Support for both Appendix and Supplementary Information (SI):
+      SI is printed to separate pages, with its own title, so it can easily be
+      split from the main PDF and submitted separately.
+      (While retaining the ability to use cross-references to the main text.)
+    Based on the `arxiv_two_column` by Brenhin Keller.
+  authors:
+    - name: Alexandre René
+      affiliations: 
+        - id: RWTH
+          name: RWTH Aachen University
+          city: Aachen
+          country: Germany
+      orcid: 0000-0003-3795-5073
+      corresponding: true
+      email: a.rene@physik.rwth-aachen.de
+  date: 2025-09-06
+  github: https://github.com/alcrene/preprintplus_template_myst
+  keywords:
+    - latex
+    - myst
+    - template
+    - one-column
+    - two-column
+    - journal
+
+  numbering: true
+      # enabled: true
+      # template: Section %s   # BUG?? Why do crossrefs still use “Heading %s” ?
+
+  # parts:
+  #   -> page frontmatter
+  # NB: As of v1.6.0, project-level parts are not picked up.
+  #     Define them in the page frontmatter instead.
+
+  # exports:
+  #   -> page frontmatter
+  # NB: As of v1.6.0, the project-level `exports` map is ignored when compiling
+  #     single pages. It needs to be provided in the page frontmatter.
+

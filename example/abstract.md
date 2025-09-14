@@ -1,0 +1,3 @@
+This aims to become a best-in-class, all-around default MyST template for writing scientific articles.
+This is achieved by providing sufficient configuration options to cover major layout variations, such as selecting between one and two column layouts, adapting the font and page dimensions to approximate that of the target journal, and zero-config support for both appendices and supplementary information.
+Basically, if you don’t have a template for your target journal, or you don’t like its template, this should be a pretty good fallback.

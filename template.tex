@@ -1,0 +1,337 @@
+\documentclass[[#- if options.two_column -#]twocolumn,switch,[#- endif -#]
+               [#- if options.papersize == "letter" -#]letterpaper
+               [#- elif options.papersize == "a4" -#]a4paper
+               [#- endif -#]
+               ]{article}
+%# The 'switch' option is picked up by certain packages, notably lineno, #%
+%# to determine whether to switch the side of the output on every page   #%
+%# Normally it should be true for two-column and double-sided output.    #%
+\PassOptionsToPackage{style}{abstract}
+\usepackage[[#- if options.status -#]       status={[-options.status-]},
+            [# endif -#]
+            [#- if options.venue_status -#] venue={[-options.venue_status-]},
+            [# endif -#]
+            runningtitle={[- doc.short_title or doc.title -]},
+            geom=[- options.text_geometry -],
+            [#- if options.margin_ticks -#] marginticks,
+            [# endif -#]
+            noabstracttitle,
+            floatplacement=medium,
+            suppfloatplacement=extratight,  % Make it easier to place floats alongside text in Supplementary, which tends to have a higher float/text ratio
+            supplementaryprefix=[-options.supplementary_prefix-],
+            orcid=true,        % Define the \orcid macro
+            ]{preprint+}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}
+[# if options.language #]
+\usepackage[[- options.language -]]{babel}
+[# endif #]
+
+[-IMPORTS-]
+
+\usepackage{xcolor}
+\usepackage[switch]{lineno}         % Line numbers; 'switch' for two column layout
+\usepackage{datetime2}
+\usepackage{datetime2-calc}
+
+% (abstract package is loaded by preprint+)
+\renewcommand{\abstractnamefont}{\normalfont\normalsize\bfseries}
+\renewcommand{\abstracttextfont}{\normalfont\normalsize}
+\renewcommand{\abstitlestyle}[1]{}  % Don’t print "Abstract" title
+
+
+\usepackage{doi}  % Automatically converts DOIs in references into links
+\renewcommand{\doitext}{https://doi.org/}  % DataCite recommends full URLs: https://datacite.org/blog/cool-dois/
+
+%% Bibliography options
+
+
+%# We allow for using either BibTex or BibLaTeX                             #%
+%# Most journals provide BibTeX style files (.bst), but BibLaTeX can        #%
+%# often produces better output for less effort.                            #%
+%# Spending time hand-adjusting the output with BibTex is obviously         #%
+%# worthwhile if the article is being resubmitted after positive reviews;   #%
+%# Otherwise I would use BibLaTeX for publishing on arXiv or a webpage.     #%
+[# if options.use_biblatex #]
+%# USE BIBLATEX  #%
+% NB: We include DOIs even though Nature normally only prints them for software, for two reasons:
+% 1. Otherwise we need to find another way to force the printing of at least software DOIs.
+% 2. For our self-published versions we want to include it (clicking a link is easy)
+% NB: Currently arXiv references are not exported with biblatex fields
+% eprint, eprinttype, so the eprint and arxiv options don’t do anything.
+\usepackage[citestyle=[-options.cite_style-],
+            bibstyle=[-options.bib_style or options.cite_style-],
+            autocite=[-options.citep_format-],
+            pluralothers=true,
+            natbib=true,
+            url=false,doi=true,eprint=true,arxiv=abs
+            ]{biblatex}
+\DeclareFieldFormat{doi}{doi\addcolon\space\url{#1}}  % Add a space after 'doi:'
+%# \setcounter{biburllcpenalty}{7000}   % Allow biblatex to break URLs #%
+%# \setcounter{biburlucpenalty}{8000}   % Prefer breaks after lowercase letters #%
+%# \setcounter{biburlnumpenalty}{9000}  % c.f. https://tex.stackexchange.com/a/134281  #%
+[# for item in doc.bibliography #]
+\addbibresource{[- item -]}
+[# endfor #]
+[# endif #]
+
+% Section title spacing  options
+\usepackage{titlesec}
+\titlespacing\section{0pt}{12pt plus 3pt minus 3pt}{1pt plus 1pt minus 1pt}
+\titlespacing\subsection{0pt}{10pt plus 3pt minus 3pt}{1pt plus 1pt minus 1pt}
+\titlespacing\subsubsection{0pt}{8pt plus 3pt minus 3pt}{1pt plus 1pt minus 1pt}
+\titleformat{\part}[display]{\filcenter\LARGE\bfseries}{}{0pt}{}{}  % Used to introduce supplementary material
+\titleformat*{\section}{\large\bfseries\raggedright}
+\titleformat*{\subsection}{\normalsize\bfseries\raggedright}
+\titleformat*{\subsubsection}{\normalsize\itshape\raggedright}
+
+
+% hyperref should generally be loaded as late as possible
+\usepackage{hyperref}
+% colors for hyperlinks
+\hypersetup{pdftitle={[-doc.title-]},
+            pdfauthor={[--doc.authors|join(', ', 'name')--]},
+            colorlinks=true, linkcolor=purple, urlcolor=blue, citecolor=cyan, anchorcolor=black}
+
+%% Configure cleveref
+%% (Generally a good idea to import cleveref last)
+\usepackage{cleveref}
+%% Use a more compact format for compressing equations
+% \newcommand{\crefrangeconjunction}{--}
+%% Use the following to spell out "equation" in cross-references
+%\crefname{equation}{equation}{equations}
+%\crefname{pluralequation}{equations}{equations}
+%\creflabelformat{pluralequation}{(#2#1#3)}
+[# if parts.supplementary #]
+%% Create new crossref types for Supplementary, with "Supp" in the name
+%% The types are activated after \supplementary below, with \crefalias
+\crefname{sifigure}{[- supplementary_prefix -] Fig.}{[- supplementary_prefix -] Figs.}
+\crefname{sitable}{[- supplementary_prefix -] Table}{[- supplementary_prefix -] Tables}
+[# endif #]
+
+
+%%%%%%%%%   Typesetting params   %%%%%%%%%%
+% See https://www.tug.org/TUGboat/tb14-2/tb39taylor-para.pdf
+%     https://tex.stackexchange.com/a/50850
+
+\emergencystretch=2pt
+% \pretolerance = 150
+% \tolerance = 9999
+% \hbadness = 150
+\hfuzz=4pt
+\vfuzz=1pt
+
+[# if options.two_column #]
+% Reduce the amount of indentation for two column layouts
+% Lists use \leftmargini, \leftmarginii, etc.
+% Quotes uses \leftmargin, which by default is set to \leftmargini
+\setlength\leftmargin{1.5em}
+\setlength\leftmargini{2em}
+[# endif #]
+
+\usepackage{xurl}   % Load xurl after biblatex to automatically fix url line breaks in the bibliography
+                    % Load xurl before hyperref (https://tex.stackexchange.com/a/479390)
+                    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%   Watermark   %%%%%%%%%%%%%%%%
+
+% Add watermark with submission status
+% Awaiting watermark support
+% \usepackage{xwatermark}
+% % Left watermark
+% \newwatermark[firstpage,color=gray!60,angle=90,scale=0.32, xpos=-4.05in,ypos=0]{\href{https://doi.org/}{\color{gray}{Publication doi}}}
+% % Right watermark
+% \newwatermark[firstpage,color=gray!60,angle=90,scale=0.32, xpos=3.9in,ypos=0]{\href{https://doi.org/}{\color{gray}{Preprint doi}}}
+% % Bottom watermark
+% \newwatermark[firstpage,color=gray!90,angle=0,scale=0.28, xpos=0in,ypos=-5in]{*correspondence: \texttt{}}
+
+%%%%%%%%%%%%%%    Front matter    %%%%%%%%%%%%%%
+
+\usepackage{authblk}
+\renewcommand*{\Authfont}{\bfseries}
+\title{[-doc.title-]}
+
+[# if options.compile_date == "none" -#]
+  \date{}
+[#- elif options.compile_date == "today" -#]
+  \date{\today}
+[#- elif options.compile_date == "frontmatter" -#]
+  [#- if doc.date -#]
+    \date{[-doc.date.day-] \DTMmonthname{[-doc.date.month-]}, [-doc.date.year-]}
+  [#- else -#]
+    \date{}  % MyST Frontmatter is missing a 'date' entry
+  [#- endif -#]
+[#- endif #]
+
+[# for author in doc.authors #]
+\author[
+    [#-if author.corresponding-#],[#-endif-#]
+    [--author.affiliations|join(', ', 'index')--]
+    [#- if author.orcid -#] \orcid{[-author.orcid-]} [#- endif -#]
+]{
+    [--author.name-]
+    [#- if author.corresponding -#]
+    \thanks{
+        Corresponding author
+        [#-if author.email-#]
+        : \texttt{[-author.email-]}
+        [#- endif -#]
+    }
+    [#-endif-#]
+}
+[# endfor #]
+[# for affiliation in doc.affiliations #]
+%# As of MyST 1.6.0, one cannot specify institution & name: both map to 'name'. #%
+%# For this reason, instead of (name, dept, inst), we do (dept, name)           #%
+%# https://github.com/orgs/myst-templates/discussions/47                        #%
+[#- set affil_els = [
+                     (affiliation.value.department if affiliation.value.department),
+                     (affiliation.value.name if affiliation.value.name),
+                     ( affiliation.value.city if affiliation.value.city),
+                     ( affiliation.value.state if affiliation.value.state),
+                     ( affiliation.value.country if affiliation.value.country) 
+                    ] -#]
+\affil[[-affiliation.index-]]{[- affil_els | select() | join(", ") -]}
+[# endfor #]
+
+[# if parts.abstract #]
+\abstract{[-parts.abstract-]}
+[# endif #]
+
+[# if doc.keywords #]
+\keywords{[-doc.keywords|join(", ")-]}
+[# endif #]
+
+%%%%%%%%%%%%%%%  Main text   %%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+[# if options.line_numbers #]
+\linenumbers
+[# endif #]
+
+[-CONTENT-]
+
+%%%%%%%%%%%%%%  Back matter  %%%%%%%%%%%%%%
+
+[# if parts.data_availability #]
+%%%%%%%%%%% Data availability %%%%%%%%%%%%
+\section*{Data availability}
+[- parts.data_availability -]
+[# endif #]
+
+[# if parts.code_availability #]
+%%%%%%%%%%% Code availability %%%%%%%%%%%%
+\section*{Code availability}
+[- parts.code_availability -]
+[# endif #]
+
+[# if doc.bibliography #]
+%%%%%%%%%%%%%%   Bibliography   %%%%%%%%%%%%%%
+[# if options.use_biblatex #]
+\emergencystretch 4pt   % Make it easier to typeset bibliographies without overflow
+\printbibliography
+\emergencystretch 2pt
+[# else #]
+\bibliography{[- doc.bibliography | join(", ") -]}
+[# endif #]
+[# endif #]
+
+[# if parts.acknowledgments or parts.funding #]
+%%%%%%%%%%%%%% Acknowledgements %%%%%%%%%%%%%%
+\section*{Acknowledgements}
+\footnotesize
+[- parts.acknowledgments -]
+
+[- parts.funding -]
+\normalsize
+[# endif #]
+
+[# if parts.author_contributions #]
+%%%%%%%%%%% Author contributions %%%%%%%%%%%%%
+\section*{Author contributions}
+\footnotesize
+[- parts.author_contributions -]
+\normalsize
+[# endif #]
+
+%%%%%%%%%%% Author contributions %%%%%%%%%%%%%
+[# if options.competing_interests #]
+\section*{Competing interests:} [-options.competing_interests-]
+[# endif #]
+
+%%%%%%%%%% External links and short-form information %%%%%%%%%%%
+\section*{Additional information}
+\footnotesize
+
+[# if options.online_link #]
+\paragraph{An online version} of this article is available at the following URL: \href{[-options.online_link-]}{[-options.online_link-]}
+[# endif #]
+
+[# if options.supplementary_link #]
+\paragraph{Supplementary material} accompanies this paper at \href{[-options.supplementary_link-]}{[-options.supplementary_link-]}
+[# endif #]
+
+\footnotesize
+\paragraph{Correspondence} should be addressed to
+{[- doc.authors | selectattr("corresponding") | join(', ', 'name') -]}.
+\normalsize
+
+[# if parts.appendix #]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Appendix %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%# WORK IN PROGRESS! the \appendix + \supplementary combination      #%
+%# is not yet extensively tested                                     #%
+%# In most cases though only one is used                             #%
+
+\appendix
+
+
+[# if options.use_biblatex and options.separate_appendix_references -#]
+\newrefsection
+[# endif #]
+
+[- parts.appendix -]
+
+[# if options.use_biblatex and options.separate_appendix_references -#]
+\emergencystretch 4pt   % Make it easier to typeset bibliographies without overflow
+\printbibliography[title=Appended References]
+\emergencystretch 2pt
+[# endif #]
+
+[# endif #]
+
+[# if parts.supplementary #]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Supplementary %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%# In contrast to the Appendix, the Supplementary Information             #%
+%# is intended to be submitted as a separate document.                    #%
+%# We still compile everything as one document though:                    #%
+%# - This is the easiest way to ensure all cross-references are correct.  #%
+%# - It also ensures all the styling is consistent.                       #%
+%# - For any other form of distribution                                   #%
+%#   (preprint, personal communication, etc.) this is usually better.     #%
+%# - It is easy to split the resulting PDF afterwards                     #%
+
+\supplementary
+\crefalias{figure}{sifigure}
+\crefalias{table}{sitable}
+
+[# if options.use_biblatex and options.separate_supplementary_references -#]
+\newrefsection
+[# endif #]
+
+[- parts.supplementary -]
+
+[# if options.use_biblatex and options.separate_supplementary_references -#]
+\emergencystretch 4pt   % Make it easier to typeset bibliographies without overflow
+\printbibliography[title=Supplementary References]
+\emergencystretch 2pt
+[# endif #]
+
+[# endif #]
+
+\end{document}

@@ -1,0 +1,1018 @@
+\NeedsTeXFormat{LaTeX2e}[2022-06-01]
+\ProvidesExplPackage{preprint+}{2025-09-06}{v0.1}{A flexible style for preprints and manuscripts}
+
+% Copyright © 2025 Alexandre René
+
+% This style file is based on the two-column template `preprint-template.tex` <github.com/brenhinkeller/preprint-template.tex>,
+% itself based on the one-column, NeurIPS-style `arxiv-style` <https://github.com/kourgeorge/arxiv-style>
+
+% The goal is to keep the general-purpose style of those templates, but make it more flexible.
+% In particular this template should be easier to use for publishing the preprint version
+% of a journal submissions.
+%    > The aforementioned styles are geared towards conference submissions, where the final paper
+%    > is typically produced with LaTeX.
+%    > In contrast, journals usually treat LaTeX purely as a markup language, which
+%    > strongly limits what kind of macros and packages are allowed.
+%
+% Ideally, one could simply remove `\usepackage{preprint+} from the source, and
+% get a paper which compiles with the journal’s own class / template.
+% This leads to the follow design considerations:
+%   - Minimal and standard dependencies
+%   - Everything is optional:
+%     + Users should be able to choose e.g. whether they want a4 or letter paper size.
+%     + Since any feature can potentially clash with another package, all features should be optional
+%   - But sane defaults
+%     + Replace `\usepackage{preprint}` with `\usepackage{preprint+}` should give the same, proven style.
+%   - Give more options for font and page geometry
+%     + Not only can a good font substantially improve the look, but it is useful
+%       for ensuring that we write in a way which fits the target journal.
+%     + For example, the best layout for equations and figures will depend both
+%       on the final column size and font.
+%       The "conference" styles in particular use a very compact math font,
+%       which is not necessarily representative of the published output.
+%   - Take care of as much _styling_ as possible, so they don’t need to add styling commands to the main source.
+%     + That way, at submission, all authors need to do is remove `\usepackage{preprint+}`.
+%     + This includes things like loading {microtype}
+%   - OTOH, providing only minimal additional functionality. This is a _style_ file.
+%     + This, again, is to make it as painless as possible to just remove `\usepackage{preprint+}`
+%   - Minimal changes to the LaTeX when switching to the journal template.
+%     In particular this means that providing an `{abstract}` environment,
+%     and macros for keywords and affiliations.
+%   - Avoid any feature that might lock an author into a particular package, such as the {multicol} for two column output.
+%   - Authors should be able to use the features they like and ignore the rest.
+%   - Support for a Supplementary Information document (which, in contrast to Appendix, are usually published as a separate PDF)
+%   - Instead of proposing many ways of doing things (e.g. twocolumn vs \usepackage{multicol}), propose one way and a way to turn it off
+%     + Exceptions: a few font and geometry options.
+%   - It should work with pdflatex, which will remain the only option for most journals for the foreseeable future.
+%     (Even arXiv still only supports pdflatex as of August 2025.)
+%  
+%
+% Providing such flexibility is made possible by the use of LaTeX 3 syntax, which has been available in the LaTeX2ε kernel since 2022.
+% This makes it _much_ easier to define long lists of options, without introducing any dependencies.
+% The ability to define complex sets of options makes it feasible to have an general-purpose,
+% flexible style package which nevertheless remains maintainable.
+
+% ALPHA STATE: Although this is already usable and provides improvements over the original `preprint-template`,
+%    many obvious features are left for future work.
+
+% COMPROMISE: In order to provide options which configure a complete set of fonts,
+%    we need to load fonts which sometimes clash 
+%    we need to load those fonts. Since font packages can only be loaded once,
+%    this means that the corresponding packages must not appear in the document
+%    preamble. In practice this means the `ammssymb`, which is part of many standard
+%    preamble, must NOT be loaded (because either it or an equivalent already is.)
+%    (`amsfonts` CAN be loaded, but there is no point, it is already loaded by `amssymb`)
+
+% Compared to `preprint-template.tex`, this package specifically does the following:
+% - Reimplements (most of) the logic with LaTeX3 syntax
+% - fixes a few visual glitches
+% - Adds options to make certain features optional:
+%   + tick marks
+%   + times font
+%   + set geometry of page
+%   + redefiniton of `{abstract}` environment. (Users are encouraged to use a standard package like `abstract` instead.)
+% - Removes unnecessarily hard-coded options (e.g. passing `letterpaper` to geometry)
+% - Don’t load natbib — this just makes it harder for users to pass options to it,
+%   or use another citation package.
+% - Changes the spacing before and after equations to prevent unsightly gaps
+%   (at the cost of making easier for the bottom of the two column not to line up)
+%   + In technical terms, we only use negative glue around equations.
+% - Uses a simpler implementation for the orcid macro, ported from https://github.com/myst-templates/arxiv_two_column
+% - Previously section spacing was defined in two different ways, in the .sty
+%   with standard low-level macros, and in the template with titlesec.
+%   Now titlesec is used throughout. (But with an option to turn it off if needed)
+% - Adds a \supplementary command, for supplementary information that will ultimately be submitted/published separately
+% - Inverts the ordering in the running header, so it is <title> -- Preprint 
+% - The inclusion of "Preprint" in the heading is now optional ('preprint' flag)
+% - An additional 'venue' optional allows for a free-from string to be
+%   printed below the title, where the old hard-coded 'Preprint' was printed.
+% - Add missing settings for `dbltopfraction` and `dblfloatpagefraction`.
+% - The `txfonts` are no longer loaded within an AtEndOfClass.
+%   This did not serve a clear purpose, made error messages more obscure, and caused weird errors with the package options
+% - Don’t default to \date{\today}, as this is not recommended for arXiv: https://info.arxiv.org/help/submit_tex.html#submissions-are-automatically-processed
+%   A date is only printed if authors explicitly set \date{}.
+% - Outdated code and unnecessary custom interface have been removed,
+%   resulting in a cleaner definitions and more standardized usage.
+%   In particular, we no longer redefine \maketitle, nor do we define three
+%   different macros \and, \And, and \AND. (Just the standard \and is used.)
+% - Interface more similar to many journal templates, with \abstract and \keywords
+%   defined in the preamble, and typeset alongside the title with \maketitle.
+% - Add option for numbering the supplementary sections
+
+% Some reasonable further goals would be:
+% - Provide a few more geometry options
+% - Allow passing options to abstract (workaround: \PassOptionsToPackage)
+% - Anonymized option
+
+% More immediate todos:
+% TODO: Prevent margintick printing if setgeom=False, or allow setting different margins values
+% TODO: Make marginticks a bool for consistency, so that `marginticks=false` does what we expect.
+% TODO: GitHub Action with some `sed -i` magic to create one `preprint+.sty` file with all `input` commands substituted, and automatically add that to the release assets
+% TODO: `titlesec=false` should force `headingstyle=none`
+% TODO: Allow to specify options for the `abstract` package; in particular, don’t force 'style'
+% TODO: Make loading of `authblk` and `abstract` optional.
+% TODO: Add tests: A core text file, then a bunch of files which just change the
+%        package options and \input the rest from the core text file.
+
+\RequirePackage{ifdraft}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Fonts %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Loads: microtype, tikz (if erewhon)
+% Provides
+%  - \l_preprint_set_font_computer_modern:
+%  - \l_preprint_set_font_erewhon:
+%  - \l_preprint_set_font_times:
+%  - \l_preprint_set_font_venturis:
+% Side-effects:
+%  - Loads `microtype`, unless the `draft` option is passed.
+%  - Loads `tikz` if erewhon font option is selected
+
+% Microtype is an automatic beautifier for text.
+%  There are few reasons not to use it, other than the added compile time.
+\ifdraft{}{\usepackage{microtype}}
+
+\cs_set:Nn \l_preprint_set_font_computer_modern: {
+  % Default Computer Modern; we load amssymb for consistency with the other
+  % options, which also make macros like \mathbb available
+  % Similarly, other options load fontenc implicitly
+  \usepackage[T1]{fontenc}
+  \RequirePackage{amssymb}
+}
+
+\cs_set:Nn \l_preprint_set_font_erewhon: {
+  % This is how the erewhon docs suggest loading the font
+  % The erewhon font is a modern font, which looks very similar to times
+  % but with simpler shapes.
+  % Eg the y stem is straighter, and s loses its blocky serifs.
+  % The result is a text which typesets similarly, but noticeably lighter.
+  % Similarly, the Utopia math font has much simpler shapes, notable
+  % e.g. with the uppercase Q and black board fonts
+  % The typewriter font is sans serif: lighter & more modern than cmtt
+  \RequirePackage{tikz}
+  \usepackage[p,scaled=.98,space]{erewhon} % scaling by .98 not really necessary
+  \usepackage[varqu,varl]{inconsolata} % typewriter
+  \usepackage[type1,scaled=.95]{cabin} % sans serif like Gill Sans
+  \usepackage[utopia,vvarbb,amsthm]{newtxmath}   
+}
+
+\cs_set:Nn \l_preprint_set_font_times: {
+  % Use Times & Helvetica fonts for equations if available
+  % This option was hard-coded in the original preprint package
+  \IfFileExists{txfonts.sty}{
+    \RequirePackage{txfonts}   % Times-like font with math support
+    \gdef\ttdefault{cmtt}
+    \let\iint\relax      % AR: Presumably these were added to avoid
+    \let\iiint\relax     %     errors from symbols being defined twice.
+    \let\iiiint\relax    %     It would be nice to have a comment though,
+    \let\idotsint\relax  %     explaining why this is necessary
+    \let\openbox\relax
+  }{%
+    \RequirePackage{times}
+  }
+   % other font configurations
+  \renewcommand{\rmdefault}{ptm}
+  \renewcommand{\sfdefault}{phv}
+}
+
+\cs_set:Nn \l_preprint_set_font_venturis: {
+  % This is the closest available TeX font I found to Nature’s sans-serif, although my search was far from exhaustive.
+  % CAUTION: This is not fully tested and lacks a full font set (roman & math fonts are unchanged)
+  \usepackage[lf]{venturis}
+  \renewcommand*\familydefault{\sfdefault}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%% Page geometry %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Provides
+%  - \l_preprint_set_geom_preprint:
+%  - \l_preprint_set_geom_neurips:
+%  - \l_preprint_set_geom_nature:
+
+\cs_set:Nn \l_preprint_set_geom_preprint: {
+  % Dimensions used by @brenhinkeller/preprint-template.tex
+  \RequirePackage[verbose=true,
+                  textheight=9.3in, 
+                  textwidth=7.1in,
+                  top=0.96in,
+                  headheight=0.15in,
+                  headsep=0.14in,
+                  footskip=0in         ]{geometry}
+}
+
+\cs_set:Nn \l_preprint_set_geom_neurips: {
+  % Dimensions used by @kourgeorge/arxiv-style
+  \RequirePackage[verbose=true,
+                  textheight=9in, 
+                  textwidth=6.5in,
+                  top=1in,
+                  headheight=14pt,
+                  headsep=25pt,
+                  footskip=30pt        ]{geometry}
+}
+
+\cs_set:Nn \l_preprint_set_geom_nature: {
+  % `total` dimensions measured on a 2025 Nature Communications article
+  \RequirePackage[total={184mm,253mm},headsep=2mm,centering]
+                 {geometry}
+}
+
+\cs_set:Nn \l_preprint_set_geom_nature_arxiv: {
+  % A tweaked version of the 'nature' geometry which leaves enough space for the arXiv watermark
+  \RequirePackage[total={178mm,253mm},headsep=2mm,centering]
+                 {geometry}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Headings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Requires: titlesec
+% Provides:
+%  - \l_preprint_heading_spacing:
+%  - \l_preprint_heading_format_bold:
+%  - \l_preprint_heading_format_sc:
+%  - \l_preprint_suppheading_format_bold:
+%  - \l_preprint_suppheading_format_sc:
+%  - \l_preprint_format_title:N
+%  - \l_preprint_title_format:  (internal)
+
+% TODO?: Rename to "decorations", and include conference notice?
+% TODO?: Set abstract font in frontmatter.sty instead?
+
+\cs_set:Nn \l_preprint_heading_spacing: {
+  % sections with less space
+  \titlespacing{\section}{0pt}{12pt plus 3pt minus 3pt}{1pt plus 1pt minus 1pt}
+  \titlespacing{\subsection}{0pt}{10pt plus 3pt minus 3pt}{1pt plus 1pt minus 1pt}
+  \titlespacing{\subsubsection}{0pt}{8pt plus 3pt minus 3pt}{1pt plus 1pt minus 1pt}
+}
+
+\cs_set:Nn  \l_preprint_title_format: {\LARGE\bfseries}
+\cs_set:Npn \l_preprint_format_title:N #1 {{\l_preprint_title_format: #1}}
+
+% Setting of abstractnamefont requires `abstract`, loaded in `frontmatter.sty`
+\cs_set:Nn \l_preprint_heading_format_bold: {
+  \cs_set:Nn  \l_preprint_title_format: {\LARGE\bfseries}
+  \renewcommand{\abstractnamefont}{\normalfont\normalsize\bfseries}
+  \titleformat{\part}[display]{\filcenter\LARGE\bfseries}{}{0pt}{}{}  % Used to introduce supplementary material
+  \titleformat*{\section}{\large\bfseries\raggedright}
+  \titleformat*{\subsection}{\normalsize\bfseries\raggedright}
+  \titleformat*{\subsubsection}{\normalsize\itshape\raggedright}
+}
+\cs_set:Nn \l_preprint_heading_format_sc: {
+  \cs_set:Nn  \l_preprint_title_format: {\LARGE\scshape}
+  \renewcommand{\abstractnamefont}{\normalfont\normalsize\bfseries\scshape}
+  \titleformat{\part}[display]{\filcenter\LARGE\scshape}{}{0pt}{}{}  % Used to introduce supplementary material
+  \titleformat*{\section}{\large\scshape\raggedright}
+  \titleformat*{\subsection}{\normalsize\itshape\raggedright}
+  \titleformat*{\subsubsection}{\normalsize\itshape\raggedright}
+}
+
+\cs_set:Nn \l_preprint_suppheading_format_bold: {
+    \titleformat*{\section}{\filcenter\large\bfseries}
+    \titleformat*{\subsection}{\filcenter\normalsize\bfseries}
+    \titleformat*{\subsubsection}{\filcenter\normalsize\itshape}
+}
+\cs_set:Nn \l_preprint_suppheading_format_sc: {
+    \titleformat*{\section}{\filcenter\large\scshape}
+    \titleformat*{\subsection}{\filcenter\normalsize\itshape}
+    \titleformat*{\subsubsection}{\filcenter\normalsize\itshape}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     % Heading functions require {abstract} pkg, loaded in preprint+frontmatter.sty
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%% Page layout %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Provides:
+%  - \l_preprint_floatfractions_loose:
+%  - \l_preprint_floatfractions_medium:
+%  - \l_preprint_floatfractions_tight:
+%  - \l_preprint_floatfractions_extratight:
+%  - \l_preprint_fontsizes_and_skips:
+%  - \l_preprint_caption_spacing:
+%  - \l_preprint_foot_spacing:
+%  - \l_preprint_parag_spacing:
+%  - \l_preprint_list_spacing:
+% Side-effects:
+%  - Set \widowpenalty=10000
+%  - Set \clubpenalty=10000
+%  - Set \sloppy
+
+\cs_set:Nn \l_preprint_set_floatfractions_loose: {
+  % Based on LaTeX defaults, with a bit less propensity 
+  \renewcommand{\topfraction      }{0.7}
+  \renewcommand{\bottomfraction   }{0.4} %.3
+  \renewcommand{\textfraction     }{0.2}
+  \renewcommand{\floatpagefraction}{0.6} %.5
+  \renewcommand{\dbltopfraction   }{.7}
+  \renewcommand{\dblfloatpagefraction}{.7} % .5
+}
+\cs_set:Nn \l_preprint_set_floatfractions_medium: {
+  % The preprint-template.tex settings + dbl* settings, which were missing
+  \renewcommand{\topfraction      }{0.85}
+  \renewcommand{\bottomfraction   }{0.4}
+  \renewcommand{\textfraction     }{0.1}
+  \renewcommand{\floatpagefraction}{0.7}
+  \renewcommand{\dbltopfraction   }{.7} % .7
+  \renewcommand{\dblfloatpagefraction}{.7} % .5
+}
+\cs_set:Nn \l_preprint_set_floatfractions_tight: {
+  % The 'tight' settings try to avoid figure pages as much as possible,
+  % by allowing a smaller fraction of the page to be text.
+  \renewcommand{\topfraction}{.85} % .7
+  \renewcommand{\bottomfraction}{.7} % .3
+  \renewcommand{\textfraction}{.15} % .2
+  \renewcommand{\floatpagefraction}{.75} % .5
+  \renewcommand{\dbltopfraction}{.8} % .7
+  \renewcommand{\dblfloatpagefraction}{.75} % .5
+}
+\cs_set:Nn \l_preprint_set_floatfractions_extratight: {
+  % Even more aggressive settings for allowing text alongside figures.
+  % Suitable for a supplementary, where the figure/text ratio is high.
+  \renewcommand{\topfraction}{.9} % .7
+  \renewcommand{\bottomfraction}{.9} % .3
+  \renewcommand{\textfraction}{.1} % .2
+  \renewcommand{\floatpagefraction}{.75} % .5
+  \renewcommand{\dbltopfraction}{.85} % .7
+  \renewcommand{\dblfloatpagefraction}{.75} % .5
+}
+
+\widowpenalty=10000
+\clubpenalty=10000
+% \flushbottom  % Recommended (and already the default) with twocolumn, but can cause spacing around equations to blow up if they have positive glue
+\sloppy
+
+
+\cs_set:Nn \l_preprint_font_sizes_and_skips: {
+  % font sizes with reduced leading
+  % NB: Allowing any \@plus to these glues (even just 2\p@), will lead to TeX
+  %     preferring to add any amount of space below an equation rather than
+  %     making the text ragged at the bottom.
+  %     To allow use of \flushbottom (b/c we want flush bottoms if at all possible)
+  %     we define glues with more space to start with, but also more leeway to
+  %     reduce that glue.
+  %     Functionally this has the effect that TeX defaults to giving equations
+  %     a bit more space, which I kind of like.
+  \renewcommand{\normalsize}{%
+    \@setfontsize\normalsize\@xpt\@xipt
+    % Original vals
+    % \abovedisplayskip      7\p@ \@plus 2\p@ \@minus 5\p@
+    % \abovedisplayshortskip \z@ \@plus 3\p@
+    % \belowdisplayskip      \abovedisplayskip
+    % \belowdisplayshortskip 4\p@ \@plus 3\p@ \@minus 3\p@
+    % v1
+    % \abovedisplayskip      9\p@ \@minus 5\p@
+    % \abovedisplayshortskip 4\p@ \@minus 4\p@
+    % \belowdisplayskip      9\p@ \@minus 5\p@
+    % \belowdisplayshortskip 9\p@ \@minus 5\p@
+    \abovedisplayskip      10\p@ \@minus 4\p@
+    \abovedisplayshortskip 2\p@ \@minus 2\p@
+    \belowdisplayskip      10\p@ \@minus 4\p@
+    \belowdisplayshortskip 9\p@ \@minus 1\p@
+  }
+  \normalsize
+  \renewcommand{\small}{%
+    \@setfontsize\small\@ixpt\@xpt
+    % \abovedisplayskip      6\p@ \@plus 1.5\p@ \@minus 4\p@
+    % \abovedisplayshortskip \z@  \@plus 2\p@
+    % \belowdisplayskip      \abovedisplayskip
+    % \belowdisplayshortskip 3\p@ \@plus 2\p@   \@minus 2\p@
+    \abovedisplayskip      8\p@ \@minus 6\p@
+    \abovedisplayshortskip 5\p@ \@minus 4\p@
+    \belowdisplayskip      8\p@ \@minus 6\p@
+    \belowdisplayshortskip 8\p@ \@minus 6\p@
+  }
+  \renewcommand{\footnotesize}{\@setfontsize\footnotesize\@ixpt\@xpt}
+  \renewcommand{\scriptsize}{\@setfontsize\scriptsize\@viipt\@viiipt}
+  \renewcommand{\tiny}{\@setfontsize\tiny\@vipt\@viipt}
+  \renewcommand{\large}{\@setfontsize\large\@xiipt{14}}
+  \renewcommand{\Large}{\@setfontsize\Large\@xivpt{16}}
+  \renewcommand{\LARGE}{\@setfontsize\LARGE\@xviipt{20}}
+  \renewcommand{\huge}{\@setfontsize\huge\@xxpt{23}}
+  \renewcommand{\Huge}{\@setfontsize\Huge\@xxvpt{28}}
+}
+
+
+%%% Caption skips %%%
+\cs_set:Nn \l_preprint_caption_spacing: {
+  \newlength{\@abovecaptionskip}\setlength{\@abovecaptionskip}{7\p@}
+  \newlength{\@belowcaptionskip}\setlength{\@belowcaptionskip}{\z@}
+
+  \setlength{\abovecaptionskip}{\@abovecaptionskip}
+  \setlength{\belowcaptionskip}{\@belowcaptionskip}
+
+  % swap above/belowcaptionskip lengths for tables
+  \renewenvironment{table}
+    {\setlength{\abovecaptionskip}{\@belowcaptionskip}%
+     \setlength{\belowcaptionskip}{\@abovecaptionskip}%
+     \@float{table}}
+    {\end@float}
+}
+
+% footnote formatting
+\cs_set:Nn \l_preprint_foot_spacing: {
+  \setlength{\footnotesep }{6.65\p@}
+  \setlength{\skip\footins}{9\p@ \@plus 4\p@ \@minus 2\p@}
+  \renewcommand{\footnoterule}{\kern-3\p@ \hrule width 12pc \kern 2.6\p@}
+  \setcounter{footnote}{0}
+}
+
+% paragraph formatting
+\cs_set:Nn \l_preprint_parag_spacing: {
+  \setlength{\parindent}{\z@}
+  \setlength{\parskip  }{5.5\p@}
+}
+
+% list formatting
+\cs_set:Nn \l_preprint_list_spacing: {
+  \setlength{\topsep       }{4\p@ \@plus 1\p@   \@minus 2\p@}
+  \setlength{\partopsep    }{1\p@ \@plus 0.5\p@ \@minus 0.5\p@}
+  \setlength{\itemsep      }{2\p@ \@plus 1\p@   \@minus 0.5\p@}
+  \setlength{\parsep       }{2\p@ \@plus 1\p@   \@minus 0.5\p@}
+  \setlength{\leftmargin   }{3pc}
+  \setlength{\leftmargini  }{\leftmargin}
+  \setlength{\leftmarginii }{2em}
+  \setlength{\leftmarginiii}{1.5em}
+  \setlength{\leftmarginiv }{1.0em}
+  \setlength{\leftmarginv  }{0.5em}
+  \def\@listi  {\leftmargin\leftmargini}
+  \def\@listii {\leftmargin\leftmarginii
+                \labelwidth\leftmarginii
+                \advance\labelwidth-\labelsep
+                \topsep  2\p@ \@plus 1\p@    \@minus 0.5\p@
+                \parsep  1\p@ \@plus 0.5\p@ \@minus 0.5\p@
+                \itemsep \parsep}
+  \def\@listiii{\leftmargin\leftmarginiii
+                \labelwidth\leftmarginiii
+                \advance\labelwidth-\labelsep
+                \topsep    1\p@ \@plus 0.5\p@ \@minus 0.5\p@
+                \parsep    \z@
+                \partopsep 0.5\p@ \@plus 0\p@ \@minus 0.5\p@
+                \itemsep \topsep}
+  \def\@listiv {\leftmargin\leftmarginiv
+                \labelwidth\leftmarginiv
+                \advance\labelwidth-\labelsep}
+  \def\@listv  {\leftmargin\leftmarginv
+                \labelwidth\leftmarginv
+                \advance\labelwidth-\labelsep}
+  \def\@listvi {\leftmargin\leftmarginvi
+                \labelwidth\leftmarginvi
+                \advance\labelwidth-\labelsep}
+}
+
+%%%%%%%%%%%%%%%%%%%%% End of Page layout macros %%%%%%%%%%%%%%%%%%%%%%
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% TiKZ macros %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Requires: tikz, background
+% Provides:
+%  - \l_preprint_draw_margin_ticks:
+%  - \orcid
+
+% Add background margin tick marks
+\cs_set:Nn \l_preprint_draw_margin_ticks: {
+  \SetBgScale{1}
+  \SetBgAngle{0}
+  \SetBgColor{black}
+  \SetBgContents{%
+    \begin{tikzpicture}[remember~picture,overlay]
+      \ExplSyntaxOff
+      \node at (-3.55in,5.2in) {\rule{.4pt}{.4in}};
+      \node at (3.55in,5.2in) {\rule{.4pt}{.4in}};
+      \node at (-3.95in,4.8in) {\rule{.4in}{.4pt}};
+      \node at (3.95in,4.8in) {\rule{.4in}{.4pt}};
+      \node at (-3.55in,-5.2in) {\rule{.4pt}{.4in}};
+      \node at (3.55in,-5.2in) {\rule{.4pt}{.4in}};
+      \node at (-3.95in,-4.8in) {\rule{.4in}{.4pt}};
+      \node at (3.95in,-4.8in) {\rule{.4in}{.4pt}};
+      \ExplSyntaxOn
+    \end{tikzpicture}%
+  }
+}
+
+% Macro for producing ORCiDs icons, sourced from from MyST arxiv_two_column
+% Requires: tikz, xcolor
+\@ifundefined{orcid}{
+  \DeclareRobustCommand{\orcidicon}{
+    \definecolor{orcidlime}{HTML}{A6CE39}
+    \begin{tikzpicture}[scale=0.8]
+      \ExplSyntaxOff
+      \draw[orcidlime, fill=orcidlime] (0,0)
+      circle [radius=0.16]
+      node[white,scale=0.8] {{\fontfamily{qag}\selectfont \tiny ID}};
+      \draw[white, fill=white] (-0.0625,0.095)
+      circle [radius=0.007];
+      \ExplSyntaxOn
+    \end{tikzpicture}
+    % \hspace{-2mm}   % AR: Removed b/c it caused overlap with 'and'
+  }
+  \newcommand\orcid[1]{\href{https://orcid.org/#1}{\orcidicon}}
+}{
+  % noop: \orcid already defined
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+%%%%%%%%%%%%%%%%%%%%% Styling of the page head %%%%%%%%%%%%%%%%%%%%%%%
+% Requires: fancyhdr
+% Provides:
+%  - \l_preprint_set_pagestyle
+
+% See also preprint+supplementary, which sets the pagehead for the supplementary
+
+\cs_set:Nn \l_preprint_set_pagestyle: {
+  \RequirePackage{fancyhdr}
+  \fancyhf{}
+  \pagestyle{fancy}
+  \renewcommand{\headrulewidth}{0pt}
+  \fancyheadoffset{0pt}
+  \fancyhead[L]{\scshape  \tl_if_eq:NNTF \l_preprint_running_str \empty
+                            {\l_preprint_title_str}
+                            {\l_preprint_running_str}
+                \tl_if_eq:NNTF \l_preprint_status_str \empty
+                  {}
+                  {{}~--~\l_preprint_status_str}
+                }
+  \fancyhead[R]{\thepage}
+  %\rfoot{\thepage}
+}
+
+% TODO: Define the supplementary pagehead here as well
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%% Frontmatter %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Loads: authblk, abstract
+% Provides:
+%  - \keywords  (if undefined — otherwise unchanged)
+%  - \abstract  (if undefined — otherwise wrapped)
+%  - \l_preprint_set_abstract_format
+%  - \l_preprint_set_author_format
+%  - \l_preprint_create_or_wrap_abstract_command  (internal)
+% unless your document class already provides these commands.
+%
+% Wraps:
+%  - \title
+%  - \maketitle
+%  - \abstract (if already defined)
+%
+% Options: 
+%  - noabstracttitle: If provided, a) {abstract} is loaded with 'style' option
+%                                  b) "Abstract" is not printed
+%
+% Side effects:
+%  - Changes \maketitle to also print the abstract & keywords
+%  - Stores the title in \l_preprint_title_str (since \@title is emptied by \maketitle)
+
+  % \RequirePackage{abstract}
+  % \RequirePackage{authblk}
+
+%%%%%%%%%%%%%% Keywords %%%%%%%%%%%%%%%%
+
+\cs_if_free:NTF\keywords {
+  \ProvideDocumentCommand{\keywords}{m}{\str_set:Nn \l_preprint_keywords_str {#1}}
+  \cs_set:Nn \l_preprint_print_keywords: {
+    \textbf{Keywords:}~\l_preprint_keywords_str
+  }
+}{
+  \cs_set:Nn \l_preprint_print_keywords: {}
+}
+
+
+%%%%%%%%%%%%%% Abstract %%%%%%%%%%%%%%
+
+\cs_set:Nn \l_preprint_create_or_wrap_abstract_cmd: {
+  \cs_if_free:NTF\abstract {
+    % If \abstract is not defined by the document class, just define it.
+    % It will work in both the preamble and the document body.
+    % NB: Use \cs_set instead of \str_set so that commands in ##1 are expanded
+    \NewDocumentCommand{\abstract}{m}{\cs_set:Nn \l_preprint_abstract_content: {##1}}
+  } {
+    % If \abstract is already defined, we need to wrap it, because it is
+    % used internally by `\begin{abstract}`
+    % In this case \abstract{} will only work in the preamble, but that’s
+    % enough to emulate the format of many journals.
+    % https://tex.stackexchange.com/questions/16295/how-does-one-detect-whether-one-is-in-the-preamble-or-not
+    \cs_set_eq:NN \l_preprint_oldabstract \abstract
+    \DeclareDocumentCommand{\abstract}{m}{
+      \ifx\@onlypreamble\@notprerr
+        \l_preprint_oldabstract{##1}
+      \else
+        % NB: Use \cs_set instead of \str_set so that commands in ##1 are expanded
+        \cs_set:Nn \l_preprint_abstract_content: {##1}
+      \fi
+    }
+  }
+}
+
+%% \if_bool:N \l_preprint_use_abstract_bool
+\cs_set:Nn \l_preprint_set_abstract_format: {
+  \if_bool:N \l_preprint_no_abstract_title_bool
+    \PassOptionsToPackage{style}{abstract}
+  \fi:
+  \RequirePackage{abstract}
+  \l_preprint_create_or_wrap_abstract_cmd:  % This must be called after loading abstract
+  %\newcommand{\abstractnamefont}{\normalfont\large\bfseries}
+    % abstractnamefont is set within preprint+headings.sty
+    % (Would it be better to set it here? Issue: It depends on the font series.)
+  \renewcommand{\absleftindent}{0.5in}
+  \renewcommand{\absrightindent}{0.5in}
+  \renewcommand{\abstracttextfont}{\normalfont\small}
+  \if_bool:N \l_preprint_no_abstract_title_bool  % Don’t print "Abstract" title
+    \renewcommand{\abstitlestyle}[1]{}           % Requires the 'style' option to {abstract}
+  \fi:
+}
+%% \else:
+%% \l_preprint_create_or_wrap_abstract_cmd:
+%% \fi:
+
+%%%%%%%%%%%%%%%% Authors %%%%%%%%%%%%%%%%
+
+\cs_set:Nn \l_preprint_set_authors_format: {
+  \RequirePackage{authblk}
+  \renewcommand{\Authfont}{\bfseries}  % This causes the whole, including 'and', to be bold
+  \renewcommand{\Authsep}{,~}
+  \renewcommand{\Authand}{~{\normalfont and}~}
+  \renewcommand{\Authands}{,~{\normalfont and}~}
+}
+
+
+
+%%%%%%%%%%%%%% Maketitle %%%%%%%%%%%%%%%%
+% % AR: I’m disinclined to reimplement \maketitle when we can get
+% %     visually indistinguishable results using the standard
+% %     implementation from the article class.
+% %     The "perfect author name centering" fix also seems to cause
+% %     overlaps when \thanks is used.
+% %     If the goal is is only to avoid deleting some variables like
+% %     \@title, we can do that more easily by wrapping those functions
+% %     ourselves.
+% \providecommand{\maketitle}{}
+% \renewcommand{\maketitle}{%
+%   \par
+%   \begingroup
+%     \renewcommand{\thefootnote}{\fnsymbol{footnote}}
+%     % \renewcommand{\@makefnmark}{\hbox to \z@{$^{\@thefnmark}$\hss}}
+%     % % The footnote-mark was overlapping the footnote-text,
+%     % % added the following to fix this problem               (MK)
+%     % \long\def\@makefntext##1{%
+%     %   \parindent 1em\noindent
+%     %   \hbox to 1.8em{\hss $\m@th ^{\@thefnmark}$}##1
+%     % }
+%     \thispagestyle{empty}
+%     \vspace*{-0.5cm}
+%     \@maketitle
+%     \@thanks
+%   \endgroup
+%   \let\maketitle\relax
+%   \let\thanks\relax
+% }
+
+% article’s \maketitle will flush the value in \@title.
+% We wrap \title to save the value in our own variable, so we can use
+% it later for the supplementary.
+\cs_set_eq:NN \l_preprint_oldtitle: \title
+\DeclareDocumentCommand{\title}{m}{
+  \str_set:Nn \l_preprint_title_str{#1}
+  \l_preprint_oldtitle:{#1}
+}
+
+% article’s \maketitle also emits `\thispagestyle{plain}` at the end,
+% which will print a page number in the footer.
+% We want to replace that with `\thispagestyle{empty}`
+\cs_set_eq:NN \l_preprint_oldmaketitle: \maketitle
+\DeclareDocumentCommand{\maketitle}{}{
+  \l_preprint_oldmaketitle:
+  \thispagestyle{empty}
+}
+
+% NB: The `article` class implements \maketitle by wrapping \@maketitle,
+%     which actually typeset the title, with higher level logic.
+%     For example, \maketitle will issue \twocolumn[\@maketitle] if
+%     we are in a two-column layout, so that the title is centered.
+%     By implementing only \@maketitle, we benefit from article’s wrapper.
+
+\date{}   % Make date blank by default, 
+\providecommand{\@maketitle}{}
+\renewcommand{\@maketitle}{%
+  \vspace*{-0.5cm}
+  \vbox{%
+    \hsize\textwidth
+    \linewidth\hsize
+    \centering
+    \l_preprint_format_title:N{\@title}\par
+    \vskip 0.1in
+    % NB: \today is not recommended for manuscripts uploaded to arXiv:
+    %     https://info.arxiv.org/help/submit_tex.html
+    \textsc{% Add the status marker
+            \tl_if_eq:NNTF \l_preprint_status_str \empty
+              {}{\l_preprint_status_str}
+            % Add the venue string, possibly prefixing with '--' separator
+            \tl_if_eq:NNTF \l_preprint_venue_str \empty
+              {}
+              {\tl_if_eq:NNTF \l_preprint_status_str \empty
+                  {}{\enspace--\enspace}
+               \l_preprint_venue_str}
+            % Add the compilation date.
+            % If nothing precedes, capitalize. Otherwise prefix with '--' separator
+            \tl_if_eq:NNTF \@date \empty 
+              {}
+              {\tl_if_eq:NNTF \l_preprint_venue_str \empty
+                {\tl_if_eq:NNTF \l_preprint_status_str \empty
+                  {Compiled~\@date}
+                  {\enspace--\enspace compiled~\@date}
+                }
+                {\enspace--\enspace compiled~\@date}
+              }
+    }\\
+    % TODO?: Option for anonymous authors
+    \begin{tabular}[t]{c}\bfseries\rule{\z@}{24\p@}\@author\end{tabular}%
+    \vskip 0.2in
+    \cs_if_exist:NTF\l_preprint_abstract_content: {
+      \begin{onecolabstract}
+        \l_preprint_abstract_content:\par
+        \l_preprint_print_keywords:
+      \end{onecolabstract}
+    }{}  % end if
+    \vspace{0.35cm}
+  }
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% End of Frontmatter %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Supplementary %%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Requires: titlesec
+% Loads: chngcntr
+% Provides:
+%  - \supplementary
+
+%% The \supplementary command is meant to be used in a similar many to \appendix:
+%% It is a state change, indicating that everything below will be part of the supplementary.
+%% The idea is to compile the supplementary in the same document as the main
+%% text, but such that it can easily be separated (either with a PDF editor,
+%% or by separating actual printed pages).
+%% Compiling everything together ensures that references remain up to date
+%% and styling is consistent.
+%% For most forms of distribution (preprint, personal communication, etc.)
+%% having a single document is usually better.
+%% The one exception of course is submission to a journal, which usually
+%% require separate files for main and supplementary material.
+%% - For the initial submission (which is usually just a PDF), it is
+%%   easiest to split the resulting PDF post-hoc.
+%% - For final submission, you will need to remove the supplementary and edit
+%%   references by hand in the submitted source.
+
+%% In addition to creating a titlepage, the \supplementary macro
+%% applies a few style changes:
+%% - Change the running header to include "Supplementary Information"
+%% - Use a slightly more spacious line spacing
+%% - To accommodate the typically higher density of figures:
+%%   - Adjust \textfraction & co. to allow more figures per page.
+%%   - Change the default placement for figures and tables to [h]
+%% - Reset all counters and prefix them so that cross-references use `Supplementary Figure 1`, `Supplementary Table 1`, etc.
+%% - Center section titles so they stand out better.
+
+% Some elements based on the following:
+% - https://tex.stackexchange.com/a/169606
+% - https://tex.stackexchange.com/a/112194
+% - https://tex.stackexchange.com/q/554045
+% - https://tex.stackexchange.com/a/696663
+
+% Configure all the counters to reset for the supplementary
+% (The supplementary is formally a new part)
+% Without this, references to Eq (S1) may display correctly but link to Eq (1)
+% in the main text instead.
+\RequirePackage{chngcntr}
+\counterwithin*{equation}{part}
+\counterwithin*{figure}{part}
+\counterwithin*{table}{part}
+\counterwithin*{page}{part}
+
+%% Execute commands to typeset the Supplementary, as a separate document
+%% (with title) appended to the main one
+%% Similar to \appendix, this should be executed just before the first
+%% \section command of the supplementary.
+\NewDocumentCommand{\supplementary}{}{%
+  % NB: \cleardoublepage will ensure the supplementary starts on an odd page,
+  %     so that when printing it can easily be separated from the main text.
+  \cleardoublepage
+
+  %%% Update the layout %%%
+
+  % Give the supplementary a big more breathing space
+  \setlength{\baselineskip}{12pt}
+  % Allow to combine text & fig, even if text is just 1%
+  % SIs tend to have proportionally more figures, so give them more chances
+  % to be typeset with the text.
+  \l_preprint_set_supp_floatfractions:
+  % Make all figures and tables use 'h' position by default
+  \def\fps@figure{h}   % (see https://tex.stackexchange.com/a/11342)
+  \def\fps@table{h}
+  % Add "Supplementary Information" to the running heading (rest is copied from preprint.sty)
+
+  %%% Update headings %%%
+  % Show "Supplementary Information" (or equiv) in running header
+  % Cf. preprint+pagehead, which sets the pagehead for the main text
+  \if_bool:N \l_preprint_fancy_headers_bool
+    \fancyhead[L]{\scshape  \tl_if_eq:NNTF \l_preprint_running_str \empty
+                                            {\l_preprint_title_str}
+                                            {\l_preprint_running_str}
+                  {}~--~\l_preprint_supplementary_str}
+  \fi:
+  % Make section titles centered
+  \l_preprint_suppheading_format:
+
+  %%% Print a title on the first page %%%
+  % Even though we are already in two-column layout, use \twocolumn so we can use its optional argument to typeset the "title" of the supplementary centered, at the top of the page
+  \cs_if_exist:NTF\l_preprint_title_str {
+    \cs_set:Nn \l_preprint_print_supptitle: {
+      \part{\l_preprint_title_str\\[1.5ex]--~Supplementary~Information~--}
+    } 
+  } {
+    \part{Supplementary~Information}
+  }
+  \if@twocolumn
+    % Use the optional argument of \twocolumn to center the
+    % Supplementary title on the page
+    \twocolumn[\vspace{-0.3in}
+               \l_preprint_print_supptitle:
+               \vspace{0.3in}]
+  \else
+    \l_preprint_print_supptitle:
+  \fi
+  \thispagestyle{empty}  % Don’t show running header on first page, like the main article
+
+
+  %%% Fix counters & cross references %%%
+
+  % NB: \stepcounter commands must come after the new \part;
+  %     the rest could be done earlier.
+
+  % Even if we number sections in the main text, SI sections are probably best left unnumbered. The SI already has referenceable headings "Supplementary Figures", "Supplementary Methods". SIs are typically less structured than appendices.
+  \setcounter{secnumdepth}{0}   
+  % Update how labels are displayed beside the eq or figure
+  \renewcommand{\theequation}{S\arabic{equation}}
+  \renewcommand{\figurename}{\l_preprint_supp_prefix_str\ Figure}  % NB: A `~` won’t produce
+  \renewcommand{\tablename}{\l_preprint_supp_prefix_str\ Table}    %     a space here.
+  \stepcounter{part}
+  \stepcounter{page}  % Page counter will reset to zero, but we want to restart at one
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%% End of Supplementary %%%%%%%%%%%%%%%%%%%%%%%%
+
+ 
+
+% \bool_new:N \l_preprint_marginticks_bool
+\bool_new:N \l_preprint_orcid_bool
+\bool_new:N \l_preprint_fancy_headers_bool
+\bool_new:N \l_preprint_titlesec_bool
+% \bool_new:N \l_preprint_use_abstract_bool
+\bool_new:N \l_preprint_no_abstract_title_bool
+\keys_define:nn { preprint+  }
+  {
+    % margin indicators are useful for proofing, but readers won’t care for them
+    marginticks.code:n = \RequirePackage{tikz,background}\l_preprint_draw_margin_ticks:,
+
+    %%%%%%%%%%%%%% geom.sty %%%%%%%%%%%%%%
+    % NB: Passing geom=none prevents loading the `geometry` package altogether
+    geom .choice:,
+    geom / twocolumn  .code:n = \let\l_preprint_set_geom:\l_preprint_set_geom_preprint:,
+    geom / onecolumn  .code:n = \let\l_preprint_set_geom:\l_preprint_set_geom_neurips:,
+    geom / nature     .code:n = \let\l_preprint_set_geom:\l_preprint_set_geom_nature:,
+    geom / naturearxiv.code:n = \let\l_preprint_set_geom:\l_preprint_set_geom_nature_arxiv:,
+    geom / none       .code:n = \let\l_preprint_set_geom:\relax,
+    geom / oneortwocol.code:n = \if@twocolumn\let\l_preprint_set_geom:\l_preprint_set_geom_preprint:\else\let\l_preprint_set_geom:\l_preprint_set_geom_neurips:\fi,
+    geom .initial:n = oneortwocol,  % Select either onecolumn or twocolumn based on the class option; assumes standard {article} class or similar (i.e. relies on \if@twocolumn)
+    
+    %%%%%%%%%%%%% arxiv.sty %%%%%%%%%%%%%%
+    arxivwatermark .code:n = \l_preprint_arxiv_watermark
+
+    %%%%%%%%%%%%%% tikz.sty %%%%%%%%%%%%%%
+    % Whether to display ORCiDs icons beside author names
+    % This requires that TiKZ be loaded.
+    % (This option has no effect if an \orcid command already exists)
+    orcid      .bool_set:N = \l_preprint_orcid_bool,
+    orcid      .initial:n  = true,
+
+
+    %%%%%%%%%%%% pagehead.sty %%%%%%%%%%%%
+    % WIP: Configure header
+    % Currently this is just a boolean which turns the header on or off
+    % (turning it off also avoids loading the fancyhdr package)
+    fancyhdr   .bool_set:N = \l_preprint_fancy_headers_bool,
+    fancyhdr   .initial:n  = true,
+
+    runningtitle .str_set:N = \l_preprint_running_str,
+    runningtitle .initial:V = \empty,
+
+    status .str_set:N = \l_preprint_status_str,
+    status .initial:V = \empty,
+    venue    .str_set:N = \l_preprint_venue_str,
+    venue    .initial:V = \empty,
+
+    %%%%%%%%%%%% headings.sty %%%%%%%%%%%%
+    % Same: Boolean to prevent loading titlesec
+    titlesec   .bool_set:N = \l_preprint_titlesec_bool,
+    titlesec   .initial:n  = true,
+
+    headingstyle .choice:,
+    headingstyle / bold      .code:n = {\let\l_preprint_heading_format:\l_preprint_heading_format_bold:
+                                        \let\l_preprint_suppheading_format:\l_preprint_suppheading_format_bold:},
+    headingstyle / smallcaps .code:n = {\let\l_preprint_heading_format:\l_preprint_heading_format_sc:
+                                        \let\l_preprint_suppheading_format:\l_preprint_suppheading_format_sc:},
+    headingstyle / none      .code:n = {\let\l_preprint_heading_format:\relax
+                                        \let\l_preprint_suppheading_format:\relax},
+    headingstyle .initial:n = bold,
+
+
+    %%%%%%%%%%% frontmatter.sty %%%%%%%%%%
+
+    % useabstract      .bool_set:N = \l_preprint_use_abstract_bool,
+    % useabstract      .initial:n = true,
+
+    noabstracttitle .bool_set:N = \l_preprint_no_abstract_title_bool,
+    noabstracttitle .initial:n = false,
+
+    %%%%%%%%% supplementary.sty %%%%%%%%%%
+    % TODO: Multiple options (turn off supplementary, etc.), scoped under 'supplementary'
+    supplementarytitle .str_set:N = \l_preprint_supplementary_str,
+    supplementarytitle .initial:n = Supplementary~Information,
+
+    supplementaryprefix .str_set:N = \l_preprint_supp_prefix_str,  % Used in preprint+supplementary.sty
+    supplementaryprefix .initial:n = Supplementary,                % to set the text before "Fig." and "Table" in labels
+
+
+    %%%%%%%%%%%%% layout.sty %%%%%%%%%%%%%
+    % Encourage TeX to place floats alongside text instead of on a float page
+    % In technical terms, this increases the allowable text fractions,
+    % following the suggestions on the TeX FAQ: https://texfaq.org/FAQ-floats
+    floatplacement .choice:,
+    floatplacement / loose     .code:n = \let\l_preprint_set_floatfractions:\l_preprint_set_floatfractions_loose:,
+    floatplacement / medium    .code:n = \let\l_preprint_set_floatfractions:\l_preprint_set_floatfractions_medium:,
+    floatplacement / tight     .code:n = \let\l_preprint_set_floatfractions:\l_preprint_set_floatfractions_tight:,
+    floatplacement / extratight.code:n = \let\l_preprint_set_floatfractions:\l_preprint_set_floatfractions_extratight:,
+    floatplacement .initial:n = medium,
+
+    %%%%%% layout.sty + supplementary.sty %%%%%%
+    % Same options, for the placement of figures in the supplementary.
+    % This is used within preprint+supplementary.sty
+    suppfloatplacement .choice:,
+    suppfloatplacement / loose     .code:n = \let\l_preprint_set_supp_floatfractions:\l_preprint_set_floatfractions_loose:,
+    suppfloatplacement / medium    .code:n = \let\l_preprint_set_supp_floatfractions:\l_preprint_set_floatfractions_medium:,
+    suppfloatplacement / tight     .code:n = \let\l_preprint_set_supp_floatfractions:\l_preprint_set_floatfractions_tight:,
+    suppfloatplacement / extratight.code:n = \let\l_preprint_set_supp_floatfractions:\l_preprint_set_floatfractions_extratight:,
+    suppfloatplacement .initial:n = extratight,
+
+    %%%%%%%%%%%%% fonts.sty %%%%%%%%%%%%%%
+    % Principle: Provide a few sane defaults.
+    % Users who want full control can pass `font=none` and set font themselves
+    font .choice:,            % Allowed values: none, cm, erewhon, times, venturis
+    font / none    .code:n = \let\l_preprint_set_font:\relax,
+    font / cm      .code:n = \let\l_preprint_set_font:\l_preprint_set_font_computer_modern:,
+    font / erewhon .code:n = \let\l_preprint_set_font:\l_preprint_set_font_erewhon:,
+    font / times   .code:n = \let\l_preprint_set_font:\l_preprint_set_font_times:,
+    font / venturis.code:n = \let\l_preprint_set_font:\l_preprint_set_font_venturis:,
+    font .initial:n = erewhon,
+  }
+
+\ProcessKeyOptions[preprint+]
+
+% Deactivate \orcid macro if orcid=false
+\if_bool:N \l_preprint_orcid_bool
+\else: \renewcommand\orcid[1]{}
+\fi:
+
+\l_preprint_set_geom:
+\l_preprint_set_font:
+
+% Frontmatter options
+\l_preprint_set_abstract_format:  % Loads `abstract` pckg  -> Must be executed before setting headings
+\l_preprint_set_authors_format:   % Loads `authblk` pckg
+
+% Header options
+\if_bool:N \l_preprint_fancy_headers_bool
+  \RequirePackage{fancyhdr}
+  \l_preprint_set_pagestyle:
+\fi:
+
+% Page layout
+\l_preprint_font_sizes_and_skips:
+\l_preprint_caption_spacing:
+\l_preprint_foot_spacing:
+\l_preprint_parag_spacing:
+\l_preprint_list_spacing:
+\l_preprint_set_floatfractions:
+
+\if_bool:N \l_preprint_titlesec_bool
+  \usepackage{titlesec}
+\else:
+  \let\l_preprint_heading_spacing:\relax
+  \let\l_preprint_heading_format:\relax
+  \let\l_preprint_suppheading_spacing:\relax
+  \let\l_preprint_suppheading_format:\relax
+\fi:
+\l_preprint_heading_spacing:
+\l_preprint_heading_format:
+
+
+ % 
