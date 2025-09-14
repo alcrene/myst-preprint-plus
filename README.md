@@ -15,7 +15,7 @@ Ultimately this aims to become a best-in-class, all-around default MyST template
 - using either BibTeX or BibLaTeX to compile references;[^biblatex]
 - support for both appendices and supplementary information;
   - _Appendices_ are typeset as part of the article, after the references and all other notices.
-  - _Supplementary Information_ is typeset as a separate document, on separate pages and with its own title on the first page. Equations and figures also a prefix like “S” or “Supp.”.
+  - _Supplementary Information_ is typeset as a separate document, on separate pages and with its own title on the first page. Equations and figures also acquire a prefix like “S” or “Supp.”.
 
 Basically, if there is a template for the journal you are targeting, you should use that.
 Otherwise, or if you haven’t yet decided on a target journal, this should be a pretty good fallback.
