@@ -138,6 +138,13 @@ options:
       Include a link to supplementary information; this should be a DOI to
       ensure permanence. The link will be placed inline at the end of all
       content, in the "Additional information" heading.
+  - id: online_link
+    type: string
+    description: >
+      Include a link back to the online version of the article, for example on
+      curvenote.com, a GitHub/GitLab with the HTML export, or a permanent link
+      on Zenodo. The link will be placed inline at the end of all content,
+      under the "Additional information" heading.
   - id: competing_interests
     type: string
     description: >
@@ -173,12 +180,12 @@ options:
     title: Text area geometry
     type: choice
     choices:
-      - twocolumn
-      - onecolumn
+      - two column
+      - one column
       - nature
       - none
-      - oneortwocol
-    default: oneortwocol
+      - auto
+    default: auto
     description: >
       This sets the dimensions of the printable text area within the page.
       Note that this is different from the _papersize_, which sets the dimensions
@@ -186,18 +193,34 @@ options:
       When using this option, make sure to also set `two_column` appropriately:
       single column text requires a smaller text area.
       Available options are those defined by `preprint+`:
-      - _twocolumn_: Use dimensions from the preprint-template.tex.
-      - _onecolumn_: Use dimensions from arxiv-style, which are themselves based
+      - _two column_: Use dimensions from the preprint-template.tex.
+      - _one column_: Use dimensions from arxiv-style, which are themselves based
         on the NeurIPS 2018 style.
       - _nature_: Use dimensions approximating those of a Nature article.
          Margins in this layout are noticeably smaller and leave little space for the arXiv watermark. Works best with A4 paper size.
       - _none_: Don’t change dimensions; don’t even load the `geometry` package.
-      - _oneortwocol_: (default): Match to the `two_column` template option.
+      - _auto_: (default): Match to the `two_column` template option.
          (Use _twocolumn_ if the `two_column` option is True; _onecolumn_ otherwise.)
     # TODO: Can we set a condition to disallow the following combinations?
     #    two_column=True: onecolumn
-    #    two_column=False: twocolmun, nature
+    #    two_column=False: twocolumn, nature
   ##### Style #####
+  - id: font
+    type: choice
+    choices:
+      # TODO: Add Latin Modern option. Among other things, this will work better with the advanced language features of babel
+      - computer modern
+      - erewhon
+      - times
+    default: erewhon
+    description: >
+      The type of font to use. Each option corresponds to a set of fonts–serif, sans serif,
+      typewriter, math–which work well together.
+      - _computer_modern_: The classic LaTeX font.
+      - _times_: The serif style used by *arxiv_two_column*;
+        its math font is especially compact, making for dense pages.
+      - _erewhon_: Also a serif style, but lighter than _times_.
+        Its math font is closer to the dimensions one typically finds in journals.
   - id: use_biblatex
     type: boolean
     default: true
@@ -261,19 +284,21 @@ options:
     description: >-
       Whether to print ticks indicating the margins. This is useful during
       preparation to ensure the bounds of the text area are not exceeded.
-      LIMITATION: Currently only works with the `two_column` option, as the
+      LIMITATION: Currently only works with the `two column` option, as the
       values are hard-coded.
   - id: line_numbers
     type: boolean
-    description: Whether to display line numbers.
     default: false
-  - id: online_link
-    type: string
-    description: >
-      Include a link back to the online version of the article, for example on
-      curvenote.com, a GitHub/GitLab with the HTML export, or a permanent link
-      on Zenodo. The link will be placed inline at the end of all content,
-      under the "Additional information" heading.
+    description: Whether to display line numbers.
+  - id: draft
+    type: boolean
+    default: false
+    description:
+      Whether to pass the `draft` option to the document class.
+      This is a conventional LaTeX option meant to accelerate compilation.
+      For example, it will cause `graphicx` to load placeholder boxes instead
+      of figures.
+      In the case of `preprint+`, it prevents loading of the `microtype` package.
 files:
   - template.tex
   - preprint+.sty

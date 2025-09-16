@@ -1,4 +1,5 @@
 \documentclass[[#- if options.two_column -#]twocolumn,switch,[#- endif -#]
+               [#- if options.draft -#]draft,[#- endif -#]
                [#- if options.papersize == "letter" -#]letterpaper
                [#- elif options.papersize == "a4" -#]a4paper
                [#- endif -#]
@@ -12,9 +13,14 @@
             [#- if options.venue_status -#] venue={[-options.venue_status-]},
             [# endif -#]
             runningtitle={[- doc.short_title or doc.title -]},
-            geom=[- options.text_geometry -],
-            [#- if options.margin_ticks -#] marginticks,
+            geom=[#- if options.text_geometry=="auto" -#]oneortwocol
+                 [#- else -#][- options.text_geometry | replace(" ", "") -]
+                 [#- endif #],
+            [# if options.margin_ticks -#] marginticks,
             [# endif -#]
+            font=[#- if options.font == "computer modern" -#]cm
+                 [#- else -#][- options.font -]
+                 [#- endif #],
             noabstracttitle,
             floatplacement=medium,
             suppfloatplacement=extratight,  % Make it easier to place floats alongside text in Supplementary, which tends to have a higher float/text ratio
