@@ -3,8 +3,8 @@
 ![](./thumbnail.png)
 
 Other styles can be achieved with different options (see [below](#standard-layouts)):  
-[[arXiv two column]](./thumbnail_arxiv-two-col.png)
-[[arXiv one column]](./thumbnail_arxiv-one-col.png)
+<a href="./thumbnail_arxiv-two-col.png"><img alt="arXiv two column" width=300 src="./thumbnail_arxiv-two-col.png"></a>
+<a href="./thumbnail_arxiv-one-col.png"><img alt="arXiv one column" width=300 src="./thumbnail_arxiv-one-col.png"></a>
 
 - Author: Alexandre René
 - Author Website: https://arene.ca
