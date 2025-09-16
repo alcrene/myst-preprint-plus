@@ -1,6 +1,10 @@
 # Preprint+ — A customizable all-purpose template
 
-![](thumbnail.png)
+![](./thumbnail.png)
+
+Other styles can be achieved with different options (see [below](#standard-layouts)):  
+[[arXiv two column]](./thumbnail_arxiv-two-col.png)
+[[arXiv one column]](./thumbnail_arxiv-one-col.png)
 
 - Author: Alexandre René
 - Author Website: https://arene.ca
@@ -132,28 +136,69 @@ Since most of these options map to a correspond option of the [`preprint+` LaTeX
 
 | Option                 | Condition             | Short description |
 |------------------------|-----------------------|-------------------|
+| **Metadata**         | | |
 | `language`             |                       | If given, loads `babel` package |
 | `compile_date`         |                       | Use "none" to prevent printing date |
+| **Content**          | | |
 | `status`               |                       | Short text, like “Preprint”, to be printed on each page in the running header. |
 | `venue_status`         |                       | Text to be print only in the info line on the first page. |
 | `supplementary_link`   |                       | Alternative to providing the Supplementary as a part. |
+| `online_link`          |                       | Include a link to an online version of the article |
 | `competing_interests`  |                       | Free form text |
 | `supplementary_prefix` |                       | Determines how the label is printed in captions of figures and tables in the supplementary. To define how figures are referred to in the text, you still need to use the `numbering` options for the MyST frontmatter.[^supp_prefix]
+| **Page dimensions**  | | |
 | `papersize`            |                       | Either `letter` or `a4` |
 | `two_column`           |                       | `true`: Use two columns and the geometry of [*arXiv (Two Column)*](https://github.com/myst-templates/arxiv_two_column)<br>`false`: Use single column and the geometry of [*arXiv (NIPS Style)*](https://github.com/myst-templates/arxiv_nips) |
 | `text_geometry`        |                       | If the `two_column` option is not enough, combine it with different choices of page geometries. |
+| **Style**            | | |
+| `font`                 |                       | (default: `erewhon`) Choose one of a few sets of fonts, selected to work well together. |
 | `use_biblatex`         |                       | Set to `false` to use BibTeX |
 | `cite_style`           | BibLaTeX[^cur]        | Passed to BibLaTeX as the `citestyle` option |
 | `bib_style`            | BibLaTeX[^cur]        | Passed to BibLaTeX as the `bibstyle` option. If undefined, the `cite_style` value is used. | 
 | `separate_appendix_references`      | BibLaTeX | (default: `false`) Print references in the appendix as a separate list. |
 | `separate_supplementary_references` | BibLaTeX | (default: `true`) Print references in the supplementary as a separate list. |
-| `margin_ticks`         | `twocolumn` geometry  | Display ticks in the four page corners to indicate margins. |
+| **Editing helpers**  | | |
+| `margin_ticks`         | `two column` geometry  | Display ticks in the four page corners to indicate margins. |
 | `line_numbers`         |                       | Display line numbers |
-| `online_link`          |                       | Include a link to an online version of the article |
 
 [^supp_prefix]: This option is subject to removal, if we can find a way to use the settings from `numbering` to also set how labels are displayed in captions.
 
 [^cur]: These are not fundamental restrictions, and could be removed in future updates.
+
+### Font options
+
+The font sets corresponding to each option are either based on existing templates, or on recommendations found in the main font’s own documentation.
+
+| Option name       | Main text font | Sans      | Typewriter    | Math    |  Comment                |
+|-------------------|----------------|-----------|---------------|---------|-------------------------|
+| `computer modern` | CM Roman       | CM Sans   | CM Typewriter | CM Math | The classic LaTeX font. |
+| `times`           | Times          | Helvetica | CM Typewriter | Times   | Settings from [*arxiv_two_column*](https://github.com/myst-templates/arxiv_two_column).<br>Uses Adobe typefaces from `txfonts` if available.<br>Math font is especially compact. |
+| `erewhon`         | erewhon        | cabin     | inconsolata   | utopia  | A more modern serif font.<br>Math dimensions similar to journals. |
+
+References: [[Overleaf: Font typefaces]](https://www.overleaf.com/learn/latex/Font_typefaces) [[LaTeX Font Catalogue]](https://tug.org/FontCatalogue/)
+
+
+### Standard layouts
+
+The [**arXiv (Two Column)** template](https://github.com/myst-templates/arxiv_two_column) is closely emulated with the options 
+[[example]](./thumbnail_arxiv-two-col.png)
+```yaml
+- two_column: true
+- font: times
+- status: Preprint
+- margin_ticks: true
+```
+
+To approximate the output of [**arXiv (NIPS Style)**](https://github.com/myst-templates/arxiv_nips), try
+[[example]](./thumbnail_arxiv-one-col.png)
+```yaml
+- two_column: false
+- font: computer modern
+- status: A Preprint
+```
+This will not reproduce the NeurIPS style exactly—in particular the title is not framed—but will reproduce the text page geometries.
+
+
 
 ### Tables
 

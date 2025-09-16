@@ -27,11 +27,10 @@ exports:
     template: ../../preprint+
     ### Paper ###
     papersize: letter        # Choose either 'letter' or 'a4'
-    two_column: true
     #text_geometry: nature   # 'text_geometry' option can be used to select one of the preconfigured geometries in `preprint+`
     ### Metadata ###
-    venue_status: Example document
     status: Beta
+    venue_status: Example document
     compile_date: frontmatter  # 'frontmatter' will use the date from the frontmatter. Use 'none' to avoid printing the date altogether.
     language: english          # Load babel; babel is not loaded at all if no language is specified
     ### Style ###
@@ -70,15 +69,26 @@ This template is based on the [preprint+ style](https://github.com/alcrene/latex
 
 [^biblatex]: BibLaTeX will generally give better output, esp. regarding URLs and line breaking, but if you intend to submit the generated tex source to a journal, they will probably require BibTeX.
 
-:::{hint}
-If your footnotes are missing, check to make sure that you have closed any parts introduced with 
-```myst
-+++ { "part": ...}
-```
-with another `+++` separator.
-:::
-
 ## Basic features and usage
+
+### Common layouts
+
+The [**arXiv (Two Column)** template](https://github.com/myst-templates/arxiv_two_column) is closely emulated with the options
+```yaml
+- two_column: true
+- font: times
+- status: Preprint
+- margin_ticks: true
+```
+
+To approximate the output of [**arXiv (NIPS Style)**](https://github.com/myst-templates/arxiv_nips), try
+```yaml
+- two_column: false
+- font: computer modern
+- status: A Preprint
+```
+This will not reproduce the NeurIPS style exactly—in particular the title is not framed—but will reproduce the text page geometries.
+
 
 ### List of parts
 
@@ -111,7 +121,7 @@ Both *appendix* and *supplementary information* should be written in separate fi
 Not only is this much easier for authors, but it also allows them to have their own frontmatter where we can adjust numbering.
 
 So for example, we might have in `main.md`:
-```myst
+```yaml
 ---
 parts:
   appendix: appendix.md
@@ -122,7 +132,7 @@ exports:
 ---
 ```
 then in `appendix.md`:
-```myst
+```yaml
 ---
 numbering:
   headings:
@@ -130,7 +140,7 @@ numbering:
 ---
 ```
 while in `supplementary.md`:
-```myst
+```yaml
 ---
 numbering:
   headings: false
@@ -148,10 +158,31 @@ I hope eventually to deprecate this option, so that the numbering format does no
 
 Note that as of MyST 1.6.0, defining the appendix and supplementary in separate files does cause an annoyance with figures; see below for a workaround.
 
+:::{hint}
+If your footnotes are missing, check to make sure that you have closed any parts introduced with 
+```myst
++++ { "part": ...}
+```
+with another `+++` separator.
+:::
 
 [^myst-1.6.0]: As of MyST 1.6.0
 
 [^alt-cleveref]: Alternatively, instead of setting the `numbering` option, you could add a postprocessing step which replaces all `Figure~\ref{…}` with `\cref{…}`. Then setting  `supplementary_prefix` would suffice, since the underlying `preprint+` package already configures _cleveref_  to prefix that value to all labels pointing to the supplementary.
+
+### Font options
+
+The font sets corresponding to each option are either based on existing templates, or on recommendations found in the main font’s own documentation.
+Current options are:
+
+`computer modern`
+~ The classic LaTeX font.
+
+`times`
+~ Settings from [*arxiv_two_column*](https://github.com/myst-templates/arxiv_two_column). Math font is especially compact. This is a common style in conference papers.
+
+`erewhon`
+~ (default) A more modern serif font. Math dimensions are similar to what one would find in journals.
 
 ## Workarounds
 
