@@ -469,6 +469,8 @@
 
 % Add background margin tick marks
 \cs_set:Nn \l_preprint_draw_margin_ticks: {
+  \RequirePackage{tikz}
+  \RequirePackage{background}
   \SetBgScale{1}
   \SetBgAngle{0}
   \SetBgColor{black}
@@ -491,6 +493,7 @@
 % Macro for producing ORCiDs icons, sourced from from MyST arxiv_two_column
 % Requires: tikz, xcolor
 \@ifundefined{orcid}{
+  \RequirePackage{tikz}
   \DeclareRobustCommand{\orcidicon}{
     \definecolor{orcidlime}{HTML}{A6CE39}
     \begin{tikzpicture}[scale=0.8]
@@ -871,7 +874,7 @@
 \keys_define:nn { preprint+  }
   {
     % margin indicators are useful for proofing, but readers won’t care for them
-    marginticks.code:n = \RequirePackage{tikz,background}\l_preprint_draw_margin_ticks:,
+    marginticks.code:n = \l_preprint_draw_margin_ticks:,
 
     %%%%%%%%%%%%%% geom.sty %%%%%%%%%%%%%%
     % NB: Passing geom=none prevents loading the `geometry` package altogether
@@ -885,7 +888,7 @@
     geom .initial:n = oneortwocol,  % Select either onecolumn or twocolumn based on the class option; assumes standard {article} class or similar (i.e. relies on \if@twocolumn)
     
     %%%%%%%%%%%%% arxiv.sty %%%%%%%%%%%%%%
-    arxivwatermark .code:n = \l_preprint_arxiv_watermark
+    arxivwatermark .code:n = \l_preprint_arxiv_watermark,
 
     %%%%%%%%%%%%%% tikz.sty %%%%%%%%%%%%%%
     % Whether to display ORCiDs icons beside author names
